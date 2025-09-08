@@ -5,3 +5,5 @@ class ApiResponse {
         this.data = data;
         this.success = status >= 200 && status < 300;
     }
+}
+export { ApiResponse };
