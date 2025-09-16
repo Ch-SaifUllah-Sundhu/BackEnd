@@ -23,3 +23,4 @@ const uploadResult = async (filePath) => {
         throw error;
     }
 }
+export { uploadResult };
