@@ -14,4 +14,10 @@ app.use(expree.json({limit : "20kb"}));
 app.use(expree.urlencoded({ extended: true , limit : "20kb"}));
 app.use(expree.static("public"));
 
+//routes
+
+import userRoutes from "./routes/user.routes.js"
+//routes declaration
+app.use("/api/v1/users", userRoutes)
+
 export { app }
