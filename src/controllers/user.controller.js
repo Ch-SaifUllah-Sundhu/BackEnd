@@ -199,6 +199,26 @@ const getProfile = asyncHandler(async(req, res) =>{
     return res.status(200).json(new ApiResponse(200, req.user, "User profile fetched successfully"))
 })
 
+const updateAccount = asyncHandler(async(req, res) =>{
+    const { fullName, email } = req.body;
+    //console.log(fullName, email);
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    if (fullName) user.fullName = fullName;
+    if (email) user.email = email;
+    await user.save();
+
+    const updatedUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    );
+    return res.status(200).json(
+        new ApiResponse(200, "User updated successfully", updatedUser)
+    );
+});
+
 export { 
     registerUser,
     loginUser,
@@ -206,4 +226,5 @@ export {
     refreshAccessToken
     ,changeCurrentPassword
     ,getProfile
+    ,updateAccount
 };
