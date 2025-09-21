@@ -1,5 +1,7 @@
+// A wrapper for async route handlers to avoid try/catch everywhere
 const asyncHandler = (requestHandler) => {
     return (req, res, next) => {
+        // Promise.resolve ensures async errors are caught
         Promise.resolve(requestHandler(req, res, next)).catch(next);
     };
 };
@@ -7,15 +9,7 @@ const asyncHandler = (requestHandler) => {
 export { asyncHandler };
 
 /*
-const asyncHandler = (fn) => async (req, res, next) => {
-    try {
-        await fn(req, res, next);
-    } catch (error) {
-        res.send(err.code || 500).json({
-            success: false,
-            message: error.message || "Internal Server Error"
-        });
-        next(error);
-    }
-};
+Alternative version (commented):
+- Explicit try/catch
+- Handles errors inside middleware directly
 */
