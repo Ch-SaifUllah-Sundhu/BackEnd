@@ -1,11 +1,11 @@
-// Import express (but you typed expree → must be express)
-import expree from "express";
+// Import express
+import express from "express";
 import cookieParser from "cookie-parser";   // Parse cookies from request
 import cors from "cors";                    // Allow cross-origin requests (frontend ↔ backend)
 import helmet from "helmet";                // Security headers
 import rateLimit from "express-rate-limit"; // Prevent too many requests (brute force attacks)
 
-const app = expree(); // Create express app
+const app = express(); // Create express app
 
 // 🛡️ Add helmet for security
 app.use(helmet());
@@ -18,36 +18,33 @@ app.use(rateLimit({
 
 // 🛡️ CORS (Cross-Origin Resource Sharing)
 app.use(cors({
-    origin: process.env.FRONTEND_URL, // only allow your frontend URL
-    credentials: true                 // allow cookies & credentials
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true
 }));
 
 // 🍪 Parse cookies automatically
 app.use(cookieParser());
 
 // 📦 Parse incoming JSON and URL encoded data
-app.use(expree.json({ limit: "20kb" })); // limit request size
-app.use(expree.urlencoded({ extended: true, limit: "20kb" }));
+app.use(express.json({ limit: "20kb" }));
+app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 
 // 📂 Serve static files from /public folder
-app.use(expree.static("public"));
+app.use(express.static("public"));
 
 // ---------------- ROUTES ----------------
 import userRoutes from "./routes/user.routes.js";
-app.use("/api/v1/users", userRoutes); // All user-related routes
+app.use("/api/v1/users", userRoutes);
 
 // ---------------- GLOBAL ERROR HANDLER ----------------
-// This middleware runs if any error is thrown
 app.use((err, req, res, next) => {
     console.error(err);
 
-    // Make sure statusCode is always a number
     const statusCode = typeof err.statusCode === "number" ? err.statusCode : 500;
 
     res.status(statusCode).json({
         success: false,
         message: err.message || "Internal Server Error",
-        // Show stack trace only in development
         stack: process.env.NODE_ENV === "development" ? err.stack : undefined
     });
 });
