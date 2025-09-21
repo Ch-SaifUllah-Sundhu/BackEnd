@@ -4,6 +4,7 @@ import { User } from '../models/user.models.js';
 import { uploadResult } from "../utils/cloudinary.js";
 import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken';
+import { Subscription } from '../models/subscription.models.js';
 
 const generateAccessAndRefreshTokens = async(userId) => {
     try {
@@ -259,6 +260,106 @@ const updateCoverImage = asyncHandler(async(req, res) =>{
     return res.status(200).json(new ApiResponse(200, user, "Cover image updated successfully"))
 })
 
+const getUserChannelProfile = asyncHandler(async(req, res) =>{
+    const {channelId} = req.params
+    if(!channelId){
+        throw new ApiError(400, "Channel id is required")
+    }
+    const user = await User.aggregate([
+        {
+            $match: {
+                username: username.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscriptions"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: { $size: "$subscribers" },
+                subscriptionsCount: { $size: "$subscriptions" },
+                isSubscribed: {
+                    $in: [req.user._id, "$subscribers.subscriber"]
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                subscriptionsCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1
+            }
+        }
+    ])
+    if(!user?.length){
+        throw new ApiError(404, "User does not exist")
+    }
+    return res.status(200).json(new ApiResponse(200, user[0], "User channel profile fetched successfully"))
+})
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id) // find the current user
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",              // join with videos collection
+                localField: "watchHistory",  // user's watchHistory array (video IDs)
+                foreignField: "_id",         // match with _id in videos
+                as: "watchHistory",
+                pipeline: [                  // <-- spelling should be pipeline (not pipline)
+                    {
+                        $lookup: {
+                            from: "users",      // join with users collection
+                            localField: "owner", // video.owner (the uploader)
+                            foreignField: "_id", // match with user._id
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {   // pick only some fields
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {            // take first element of owner array
+                            owner: { $arrayElemAt: ["$owner", 0] }
+                        }
+                    }
+                ]
+            }
+        }
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, user[0].watchHistory, "User watch history fetched successfully")
+    );
+});
+
 export { 
     registerUser,
     loginUser,
@@ -269,4 +370,6 @@ export {
     ,updateAccount
     ,updateAvatar
     ,updateCoverImage
+    ,getUserChannelProfile,
+    getWatchHistory
 };
